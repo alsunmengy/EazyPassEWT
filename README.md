@@ -229,7 +229,7 @@ python main.py
 
 ## License
 
-[MPL-2.0](LICENSE) © 2024 teea418
+[MPL-2.0](LICENSE) © 2026 teea418
 
 ---
 
