@@ -442,22 +442,14 @@ def video_pass(page: Page, monitor_selector: Optional[str] = None) -> bool:
             page.locator('video.vjs-tech').click(timeout=1000)
             video.evaluate('video => video.play()')
 
-        target_speed = 1.0  # 默认1倍速
-        # 设置 2.0 倍速（点播放器自带的倍速按钮）
+        target_speed = 2.0
+        # 设置 2.0 倍速（JS 直接设 playbackRate）
         try:
             page.wait_for_selector('.vjs-control-bar', state='visible', timeout=5000)
-            speed_btn = page.locator('.vjs-playback-rate, .vjs-playback-rate-value, button:has-text("倍速"), [class*="speed"], [class*="rate"]').first
-            if speed_btn.is_visible(timeout=3000):
-                speed_btn.click()
-                time.sleep(0.5)
-                speed_2x = page.locator('text=2.0, text=2x, text=2.0x, [aria-label="2.0"], [aria-label="2x"]').first
-                if speed_2x.is_visible(timeout=2000):
-                    speed_2x.click()
-                    time.sleep(0.3)
-                    target_speed = 2.0
-                    logger.info("已设为 2.0 倍速（播放器原生）")
+            page.evaluate('() => { const v = document.querySelector("video.vjs-tech"); if(v) v.playbackRate = 2.0; }')
+            logger.info("已设为 2.0 倍速")
         except Exception:
-            logger.warning("无法设置原生2.0倍速，使用1x播放")
+            logger.warning("控制栏未出现，使用 1x 播放")
 
         # 获取时长和倍速
         try:
