@@ -685,7 +685,6 @@ if __name__ == "__main__":
 
         auto_choice(page=detail_page, schedule=schedules)
 
-        # 所有任务执行完毕后保持窗口不关闭
-        while True:
-            input("按任意键退出EazyPassEWT...")
-            quit_ewt(0)
+        # 所有任务执行完毕后退出
+        logger.info("🎉 全部淦完，收工！")
+        quit_ewt(0)
