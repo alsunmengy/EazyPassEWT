@@ -297,32 +297,37 @@ def auto_choice(page: Page, schedule: list):
     """
     遍历每日打卡任务，自动筛选出当天未完成的视频并逐个播放
 
-    判断逻辑：
-    1. 从"完成N/M"文本解析已完成数和总数
-    2. 未完成的才进入，且只处理日期 <= 今天的任务
-    3. 每个任务可能有多个视频（div[data-type="2"]），逐个在新标签页打开
+    策略：
+    1. 优先淦今天的任务
+    2. 今天的干完了，再回头补之前的（从大日期到小日期倒着补）
+    3. 每个任务可能有多个视频，逐个在新标签页打开
     4. 视频播放带重试保护
     """
-    logger.info("自动选择任务")
-    now_date_month = datetime.now().month
-    now_date_day = datetime.now().day
+    logger.info("开始扫荡任务...")
+
+    now = datetime.now()
+    now_date_month = now.month
+    now_date_day = now.day
+
+    # 把所有日期解析出来分个类
+    today_item = None
+    past_items = []  # (month, day, item)
 
     for item in schedule:
         match = re.search(r'完成(\d+)/(\d+)', item["completion"])
         if not match:
-            logger.error(f'{item["date"]} 任务：无法解析')
+            logger.error(f'{item["date"]} 任务：看不懂完成状态')
             quit_ewt(1)
 
         done = int(match.group(1))
         total = int(match.group(2))
-        logger.info(f'{item["date"]} 任务：完成 {done}/{total}')
+        logger.info(f'{item["date"]} 任务：干了 {done}/{total}')
 
-        # 全部完成则跳过
+        # 全部完成直接跳过
         if done >= total:
-            logger.info(f'{item["date"]} 任务：全部完成，跳过')
             continue
 
-        # 解析日期，跳过未来的任务
+        # 解析日期
         date_match = re.search(r'(\d{1,2})月(\d{1,2})日', item["date"])
         if not date_match:
             continue
@@ -330,66 +335,95 @@ def auto_choice(page: Page, schedule: list):
         month = int(date_match.group(1))
         day = int(date_match.group(2))
 
-        if month != now_date_month or day != now_date_day:
-            logger.info(f'{item["date"]} 任务：非今日任务，跳过')
+        # 未来的任务不管
+        if month > now_date_month or (month == now_date_month and day > now_date_day):
+            logger.info(f'{item["date"]} 任务：还没到日子呢，跳过')
             continue
 
-        # 点击当前日期的任务条目，切换到对应视图
+        if month == now_date_month and day == now_date_day:
+            today_item = item
+        else:
+            past_items.append((month, day, item))
+
+    # === 第一阶段：淦今天的 ===
+    if today_item:
+        logger.info(f'🔥 先淦今天的：{today_item["date"]}')
+        _process_date(page, today_item)
+    else:
+        logger.info('👀 今天的任务已经全部干完了')
+
+    # === 第二阶段：回头补之前的（从近到远倒着补）===
+    if past_items:
+        past_items.sort(key=lambda x: (x[0], x[1]), reverse=True)
+        logger.info(f'📦 今天的搞完了，回头补之前的，共 {len(past_items)} 天有待办')
+        for month, day, item in past_items:
+            logger.info(f'⏪ 补 {item["date"]} 的任务')
+            _process_date(page, item)
+
+    logger.info('🎉 所有任务已扫荡完毕')
+
+
+def _process_date(page: Page, item: dict):
+    """处理某一天的任务：点进去、播视频"""
+    try:
         item["locator"].click()
-        page.wait_for_timeout(1000)  # 等待页面渲染更新
+    except Exception:
+        logger.warning(f'{item["date"]} 任务：点不进去，跳过')
+        return
+    page.wait_for_timeout(1000)
 
-        # 页面中 div[data-type="2"] 是视频入口按钮，最后一个通常是"查看更多"需排除
-        buttons = page.locator('div[data-type="2"]')
-        count = buttons.count() - 1
-        logger.info(f'{item["date"]} 任务：找到 {count} 个视频内容')
+    buttons = page.locator('div[data-type="2"]')
+    count = buttons.count() - 1
+    logger.info(f'{item["date"]} 任务：翻到 {count} 个视频')
 
-        for i in range(count):
-            btn = buttons.nth(i)
+    for i in range(count):
+        btn = buttons.nth(i)
+        try:
             btn.wait_for(state="visible", timeout=5000)
+        except Exception:
+            continue
 
-            # 检查按钮上的 data-finish 属性，已学完则跳过
-            if btn.get_attribute("data-finish") == "true":
-                logger.info(f'{item["date"]} 任务：第 {i + 1} 个视频已学完，跳过')
-                continue
+        # 检查是不是已经学完了
+        if btn.get_attribute("data-finish") == "true":
+            logger.info(f'{item["date"]} 任务：第 {i + 1} 个视频早就看完了，跳过')
+            continue
 
-            # 点击视频按钮，等待新标签页（部分视频可能无法打开新页，超时则跳过）
-            try:
-                with page.context.expect_page(timeout=15000) as video_page_info:
-                    btn.click()
-                    logger.info(f'{item["date"]} 任务：点击第 {i + 1} 个视频')
-                video_page = video_page_info.value
-            except (PwTimeoutError, Exception):
-                logger.warning(f'{item["date"]} 任务：第 {i + 1} 个视频未能打开新页面，跳过')
-                continue
-            if video_page is None:
-                logger.error("打开视频页面失败")
-                continue
+        # 点开视频
+        try:
+            with page.context.expect_page(timeout=15000) as video_page_info:
+                btn.click()
+                logger.info(f'{item["date"]} 任务：冲第 {i + 1} 个视频')
+            video_page = video_page_info.value
+        except (PwTimeoutError, Exception):
+            logger.warning(f'{item["date"]} 任务：第 {i + 1} 个视频没打开，算了')
+            continue
+        if video_page is None:
+            continue
 
-            video_page.wait_for_load_state()
-            logger.info(f"打开视频：{video_page.title()}({video_page.url})")
-            # 等待网络请求完成，确保视频元数据已加载
-            video_page.wait_for_load_state("networkidle")
+        video_page.wait_for_load_state()
+        logger.info(f"打开视频：{video_page.title()}({video_page.url[:60]}...)")
+        video_page.wait_for_load_state("networkidle")
 
-            # 播放视频，失败时自动重试 3 次
-            retry_call(
-                video_pass,
-                args=(video_page,),
-                kwargs={"monitor_selector": 'span[data-ac="check-pass"]'},
-                max_attempts=3, delay=2.0,
-                exceptions=(PwTimeoutError, Exception),
-            )
+        # 开淦，不行就重试3次
+        retry_call(
+            video_pass,
+            args=(video_page,),
+            kwargs={"monitor_selector": 'span[data-ac="check-pass"]'},
+            max_attempts=3, delay=2.0,
+            exceptions=(PwTimeoutError, Exception),
+        )
 
-            # 关闭已播放完的视频标签页（安全处理页面已关闭的情况）
-            try:
-                video_page.close()
-                logger.info("已关闭视频标签页")
-            except (PwError, Exception):
-                logger.info("视频标签页已关闭")
+        # 关掉视频标签页
+        try:
+            video_page.close()
+            logger.info("视频看完了，关掉")
+        except (PwError, Exception):
+            pass
 
-            # 视频间随机延迟（2~8s），模拟人工切换任务的间隔，降低请求频率特征
-            interval = round(random.uniform(2.0, 8.0), 1)
-            logger.info(f"等待 {interval}s 后进入下一个视频")
-            time.sleep(interval)
+        # 歇口气再搞下一个
+        interval = round(random.uniform(2.0, 8.0), 1)
+        logger.info(f"歇 {interval}s 再战")
+        time.sleep(interval)
 
 
 # ── 视频播放相关 ──────────────────────────────────────────
