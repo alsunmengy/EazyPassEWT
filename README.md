@@ -1,4 +1,5 @@
 # EazyPassEWT
+[![GitHub followers](https://img.shields.io/github/followers/alsunmengy?style=social&label=Follow)](https://github.com/alsunmengy)
 
 > 升学e网通 (ewt360.com) 自动化学习辅助工具
 >
