@@ -1,6 +1,10 @@
 # EazyPassEWT
 [![GitHub followers](https://img.shields.io/github/followers/alsunmengy?style=social&label=Follow)](https://github.com/alsunmengy)
 
+## Star History
+
+[![Star history](https://raw.githubusercontent.com/teea418/EazyPassEWT/main/.github/star-history/chart.svg)](https://github.com/teea418/EazyPassEWT/stargazers)
+
 > 升学e网通 (ewt360.com) 自动化学习辅助工具
 >
 > 基于 Playwright 模拟浏览器操作，自动登录平台、进入学习计划、逐条播放未完成的视频任务，播放期间自动处理弹窗，全程静默或可视运行。
