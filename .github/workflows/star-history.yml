@@ -1,28 +1,26 @@
 name: Update star history
 on:
   schedule:
-    - cron: '0 0 * * 0'
+    - cron: '17 3 * * *'
   workflow_dispatch:
 permissions:
   contents: write
 jobs:
   update:
     runs-on: ubuntu-latest
+    concurrency:
+      group: star-history
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: nicoloboschi/gh-stars@v1
         with:
-          python-version: '3.12'
-      - name: Install dependencies
-        run: pip install requests matplotlib
-      - name: Generate chart
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python .github/scripts/star_history.py
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          line-color: '#58a6ff'
       - name: Commit chart
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add assets/star-history.svg
+          git add .github/star-history/data.json .github/star-history/chart.svg
           git diff --cached --quiet || git commit -m 'chore: update star history'
           git push
