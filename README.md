@@ -1,7 +1,7 @@
 # EazyPassEWT
 <a href="https://github.com/teea418/EazyPassEWT/stargazers"><img src="https://raw.githubusercontent.com/teea418/EazyPassEWT/master/.github/badges/star-banner.svg" alt="点一下 Star" height="60"></a>
 <br>
-<a href="https://github.com/alsunmengy"><img src="https://raw.githubusercontent.com/teea418/EazyPassEWT/master/.github/badges/follow-me.svg" alt="关注我" height="60"></a>
+<a href="https://github.com/alsunmengy"><img src="https://raw.githubusercontent.com/alsunmengy/EazyPassEWT/master/.github/badges/follow-me.svg" alt="关注我" height="60"></a>
 <br>
 [![GitHub followers](https://img.shields.io/github/followers/alsunmengy?style=social&label=Follow)](https://github.com/alsunmengy)
 [![GitHub stars](https://img.shields.io/github/stars/alsunmengy/EazyPassEWT?style=social&label=Star)](https://github.com/alsunmengy/EazyPassEWT/stargazers)
