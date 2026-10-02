@@ -6,7 +6,7 @@
 
 ## Star History
 
-[![Star history](https://raw.githubusercontent.com/teea418/EazyPassEWT/master/.github/star-history/chart.svg)](https://github.com/teea418/EazyPassEWT/stargazers)
+[![Star history](https://raw.githubusercontent.com/alsunmengy/EazyPassEWT/master/.github/star-history/chart.svg)](https://github.com/teea418/EazyPassEWT/stargazers)
 
 > 升学e网通 (ewt360.com) 自动化学习辅助工具
 >
